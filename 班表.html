@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>桃捷助理 - SHIFT PRO</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 pb-24 font-sans text-slate-900 leading-tight">
+
+    <header class="bg-indigo-950 text-white p-6 shadow-2xl sticky top-0 z-50">
+        <div class="flex justify-between items-end">
+            <div>
+                <h1 class="text-[10px] opacity-40 font-black italic tracking-widest mb-1">SHIFT PRO 6.7</h1>
+                <p id="month-display" class="text-4xl font-black tracking-tighter leading-none"></p>
+            </div>
+            <div id="weather-display" class="text-right">
+                <div class="flex items-center justify-end gap-1">
+                    <span id="w-icon" class="text-2xl">🌡️</span>
+                    <span id="w-temp" class="text-2xl font-black">--°C</span>
+                </div>
+                <p id="w-desc" class="text-[10px] text-indigo-300 font-medium">定位中...</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-5 gap-2 mt-6">
+            <div class="bg-white/10 p-2 rounded-xl text-center border border-white/5">
+                <p class="text-[8px] opacity-50 uppercase mb-1">1 Day</p>
+                <p id="avg-1" class="text-sm font-bold">--</p>
+            </div>
+            <div class="bg-white/10 p-2 rounded-xl text-center border border-white/5">
+                <p class="text-[8px] opacity-50 uppercase mb-1">3 Days</p>
+                <p id="avg-3" class="text-sm font-bold">--</p>
+            </div>
+            <div class="bg-white/10 p-2 rounded-xl text-center border border-white/5">
+                <p class="text-[8px] opacity-50 uppercase mb-1">5 Days</p>
+                <p id="avg-5" class="text-sm font-bold">--</p>
+            </div>
+            <div class="bg-white/10 p-2 rounded-xl text-center border border-white/5">
+                <p class="text-[8px] opacity-50 uppercase mb-1">7 Days</p>
+                <p id="avg-7" class="text-sm font-bold">--</p>
+            </div>
+            <div class="bg-white/10 p-2 rounded-xl text-center border border-white/5">
+                <p class="text-[8px] opacity-50 uppercase mb-1">30 Days</p>
+                <p id="avg-30" class="text-sm font-bold">--</p>
+            </div>
+        </div>
+    </header>
+
+    <main class="p-4 space-y-4">
+        <section class="flex gap-2">
+            <div class="grid grid-cols-4 gap-2 flex-1 bg-white p-2 rounded-2xl shadow-sm border border-slate-100" id="shift-selector">
+                <button onclick="selectShift('early')" id="btn-early" class="py-2 rounded-xl bg-orange-50 text-orange-600 border border-orange-100 font-bold text-[10px]">早班</button>
+                <button onclick="selectShift('afternoon')" id="btn-afternoon" class="py-2 rounded-xl bg-blue-50 text-blue-600 border border-blue-100 font-bold text-[10px]">午班</button>
+                <button onclick="selectShift('night')" id="btn-night" class="py-2 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100 font-bold text-[10px]">夜班</button>
+                <button onclick="selectShift('normal')" id="btn-normal" class="py-2 rounded-xl bg-green-50 text-green-600 border border-green-100 font-bold text-[10px]">正常班</button>
+            </div>
+            <button onclick="exportMonthlyICS()" class="bg-indigo-600 text-white px-4 rounded-2xl shadow-lg active:scale-95 transition-all text-sm font-bold">
+                匯出
+            </button>
+        </section>
+
+        <section class="bg-white rounded-3xl shadow-sm overflow-hidden border border-slate-100">
+            <div class="flex justify-between items-center p-4 bg-slate-50 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                <button onclick="changeMonth(-1)">◀ Prev Month</button>
+                <button onclick="changeMonth(1)">Next Month ▶</button>
+            </div>
+            <div id="calendar-days" class="grid grid-cols-7 text-sm"></div>
+        </section>
+
+        <section id="detail-pane" class="bg-white rounded-3xl p-6 shadow-xl border border-slate-200 hidden">
+            <div class="flex justify-between items-start mb-6">
+                <div>
+                    <h2 id="view-date" class="text-slate-400 text-[10px] font-bold tracking-widest uppercase">DATE</h2>
+                    <p id="view-shift-name" class="text-4xl font-black text-slate-900 leading-none mt-1">--</p>
+                </div>
+                <div id="sleep-reminder-box" class="bg-amber-100 text-amber-800 p-3 rounded-2xl text-center border border-amber-200">
+                    <p class="text-[9px] font-bold uppercase opacity-60">10H入睡提醒</p>
+                    <p id="sleep-reminder" class="text-xl font-mono font-bold">--:--</p>
+                </div>
+            </div>
+
+            <div class="space-y-6">
+                <div class="grid grid-cols-1 gap-4">
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 ml-1 mb-2 block uppercase tracking-wider">● 一般睡眠 (Main Sleep)</label>
+                        <div class="flex gap-3">
+                            <input type="time" id="s-start" class="flex-1 bg-slate-100 border-none rounded-2xl p-4 text-base font-mono">
+                            <input type="time" id="s-end" class="flex-1 bg-slate-100 border-none rounded-2xl p-4 text-base font-mono">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-indigo-500 ml-1 mb-2 block uppercase tracking-wider">● 小睡/補眠 (Nap)</label>
+                        <div class="flex gap-3">
+                            <input type="time" id="n-start" class="flex-1 bg-indigo-50 border-none rounded-2xl p-4 text-base font-mono text-indigo-900">
+                            <input type="time" id="n-end" class="flex-1 bg-indigo-50 border-none rounded-2xl p-4 text-base font-mono text-indigo-900">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-2 pt-2">
+                    <button onclick="saveSleep()" class="flex-1 bg-slate-900 text-white py-4 rounded-2xl font-bold text-sm shadow-lg active:bg-slate-800 transition-all">
+                        儲存今日所有紀錄
+                    </button>
+                    <button onclick="addToGoogleCalendar()" class="bg-slate-100 text-slate-600 px-4 rounded-2xl border border-slate-200 active:bg-slate-200 transition-all">
+                        <img src="https://www.gstatic.com/images/branding/product/1x/calendar_2020q4_48dp.png" class="w-6">
+                    </button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // 設定與金鑰
+        const API_KEY = "49c165268b8c65f91c1d84d5d3dd313c";
+        let myShifts = JSON.parse(localStorage.getItem('myShifts')) || {};
+        let mySleepLogs = JSON.parse(localStorage.getItem('mySleepLogs')) || {};
+        let currentViewDate = new Date();
+        let selectedShiftType = 'early';
+        let activeDateStr = "";
+
+        const shiftRules = {
+            early: { name: "早班", start: "07:20", end: "15:20", color: "bg-orange-400", showReminder: true },
+            afternoon: { name: "午班", start: "15:00", end: "23:00", color: "bg-blue-400", showReminder: false },
+            night: { name: "夜班", start: "22:40", end: "07:40", color: "bg-indigo-600", showReminder: false },
+            normal: { name: "正常班", start: "08:30", end: "17:30", color: "bg-green-500", showReminder: true }
+        };
+
+        function selectShift(type) {
+            selectedShiftType = type;
+            document.querySelectorAll('#shift-selector button').forEach(b => b.classList.remove('ring-4', 'ring-indigo-100', 'scale-105'));
+            document.getElementById(`btn-${type}`).classList.add('ring-4', 'ring-indigo-100', 'scale-105');
+        }
+
+        async function fetchWeather() {
+            if (!navigator.geolocation) return;
+            navigator.geolocation.getCurrentPosition(async (pos) => {
+                try {
+                    const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&appid=${API_KEY}&units=metric&lang=zh_tw`);
+                    const data = await res.json();
+                    document.getElementById('w-temp').innerText = `${Math.round(data.main.temp)}°C`;
+                    document.getElementById('w-desc').innerText = `${data.weather[0].description} (體感 ${Math.round(data.main.feels_like)}°C)`;
+                    document.getElementById('w-icon').innerText = getWeatherEmoji(data.weather[0].icon);
+                } catch (e) { document.getElementById('w-desc').innerText = "氣象連線中"; }
+            });
+        }
+
+        function getWeatherEmoji(code) {
+            const map = {"01":"☀️","02":"⛅","03":"☁️","04":"☁️","09":"🌧️","10":"🌦️","11":"⛈️","13":"❄️","50":"🌫️"};
+            return map[code.substring(0,2)] || "🌡️";
+        }
+
+        function renderCalendar() {
+            const year = currentViewDate.getFullYear();
+            const month = currentViewDate.getMonth();
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const container = document.getElementById('calendar-days');
+            
+            document.getElementById('month-display').innerText = `${year}.${String(month+1).padStart(2,'0')}`;
+            container.innerHTML = '';
+
+            for (let i = 0; i < firstDay; i++) container.innerHTML += `<div class="h-20 border-b border-r border-slate-50"></div>`;
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                const shift = myShifts[dateStr];
+                const sleep = mySleepLogs[dateStr];
+                const shiftColor = shift ? shiftRules[shift].color : 'bg-white';
+                const isActive = (activeDateStr === dateStr) ? 'ring-2 ring-inset ring-indigo-500' : '';
+                
+                const sleepTotal = sleep ? (typeof sleep === 'object' ? sleep.total : sleep) : null;
+
+                container.innerHTML += `
+                    <div onclick="clickDate('${dateStr}')" class="h-20 border-b border-r border-slate-50 flex flex-col p-2 cursor-pointer transition-all ${shiftColor} ${shift ? 'text-white' : 'text-slate-600'} ${isActive}">
+                        <span class="text-[10px] font-bold">${d}</span>
+                        <span class="text-[9px] font-black mt-auto text-center leading-tight">${shift ? shiftRules[shift].name : ''}</span>
+                        ${sleepTotal ? `<div class="text-[8px] font-bold opacity-80 text-right mt-1">🌙 ${sleepTotal}h</div>` : ''}
+                    </div>
+                `;
+            }
+            updateAnalysis();
+        }
+
+        function clickDate(dateStr) {
+            activeDateStr = dateStr;
+            // Toggle 切換/取消邏輯
+            if (myShifts[dateStr] === selectedShiftType) {
+                delete myShifts[dateStr];
+            } else {
+                myShifts[dateStr] = selectedShiftType;
+            }
+            localStorage.setItem('myShifts', JSON.stringify(myShifts));
+            renderCalendar();
+            showDetail(dateStr);
+        }
+
+        function showDetail(dateStr) {
+            const shift = myShifts[dateStr];
+            const pane = document.getElementById('detail-pane');
+            const reminderBox = document.getElementById('sleep-reminder-box');
+            
+            pane.classList.remove('hidden');
+            document.getElementById('view-date').innerText = dateStr;
+
+            if (shift) {
+                const rule = shiftRules[shift];
+                document.getElementById('view-shift-name').innerText = rule.name;
+                if (rule.showReminder) {
+                    reminderBox.style.visibility = 'visible';
+                    const startTime = new Date(`${dateStr}T${rule.start}`);
+                    const rTime = new Date(startTime.getTime() - (10 * 60 * 60 * 1000));
+                    document.getElementById('sleep-reminder').innerText = `${String(rTime.getHours()).padStart(2, '0')}:${String(rTime.getMinutes()).padStart(2, '0')}`;
+                } else {
+                    reminderBox.style.visibility = 'hidden';
+                }
+            } else {
+                document.getElementById('view-shift-name').innerText = "休假";
+                reminderBox.style.visibility = 'hidden';
+            }
+            pane.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }
+
+        function calculateDuration(start, end) {
+            if (!start || !end) return 0;
+            let s = new Date(`2026-01-01 ${start}`);
+            let e = new Date(`2026-01-01 ${end}`);
+            if (e < s) e.setDate(e.getDate() + 1);
+            return parseFloat(((e - s) / 1000 / 60 / 60).toFixed(1));
+        }
+
+        function saveSleep() {
+            if (!activeDateStr) return;
+            const mDur = calculateDuration(document.getElementById('s-start').value, document.getElementById('s-end').value);
+            const nDur = calculateDuration(document.getElementById('n-start').value, document.getElementById('n-end').value);
+            const total = parseFloat((mDur + nDur).toFixed(1));
+            if (total === 0) return;
+
+            mySleepLogs[activeDateStr] = { main: mDur, nap: nDur, total: total };
+            localStorage.setItem('mySleepLogs', JSON.stringify(mySleepLogs));
+            renderCalendar();
+            alert(`${activeDateStr} 已儲存 (含小睡共 ${total}h)`);
+        }
+
+        function updateAnalysis() {
+            const periods = [1, 3, 5, 7, 30];
+            const today = new Date();
+            periods.forEach(p => {
+                let total = 0, count = 0;
+                for (let i = 0; i < p; i++) {
+                    const d = new Date(); d.setDate(today.getDate() - i);
+                    const dStr = d.toISOString().split('T')[0];
+                    // 核心修正：只計算有排班 (工作日) 的睡眠
+                    if (myShifts[dStr] && mySleepLogs[dStr]) {
+                        const val = typeof mySleepLogs[dStr] === 'object' ? mySleepLogs[dStr].total : mySleepLogs[dStr];
+                        total += val; count++;
+                    }
+                }
+                document.getElementById(`avg-${p}`).innerText = count > 0 ? (total / count).toFixed(1) + "h" : "--";
+            });
+        }
+
+        function exportMonthlyICS() {
+            const year = currentViewDate.getFullYear();
+            const month = String(currentViewDate.getMonth() + 1).padStart(2, '0');
+            let ics = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//ShiftHelper//TW\nMETHOD:PUBLISH\n";
+            Object.keys(myShifts).forEach(dateStr => {
+                if (dateStr.startsWith(`${year}-${month}`)) {
+                    const shift = myShifts[dateStr];
+                    if (!shift) return;
+                    const rule = shiftRules[shift];
+                    const start = dateStr.replace(/-/g, '') + 'T' + rule.start.replace(':', '') + '00';
+                    let eObj = new Date(`${dateStr}T${rule.end}`);
+                    if (shift === 'night') eObj.setDate(eObj.getDate() + 1);
+                    const end = eObj.toISOString().split('T')[0].replace(/-/g, '') + 'T' + rule.end.replace(':', '') + '00';
+                    let desc = "";
+                    if (rule.showReminder) {
+                        const rTime = new Date(new Date(`${dateStr}T${rule.start}`).getTime() - (10 * 60 * 60 * 1000));
+                        desc = `DESCRIPTION:建議入睡時間：${String(rTime.getHours()).padStart(2, '0')}:${String(rTime.getMinutes()).padStart(2, '0')}\n`;
+                    }
+                    ics += `BEGIN:VEVENT\nSUMMARY:[桃捷] ${rule.name}\nDTSTART:${start}\nDTEND:${end}\n${desc}END:VEVENT\n`;
+                }
+            });
+            ics += "END:VCALENDAR";
+            const blob = new Blob([ics], { type: 'text/calendar' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `班表_${year}_${month}.ics`;
+            link.click();
+        }
+
+        function addToGoogleCalendar() {
+            const shift = myShifts[activeDateStr];
+            const rule = shift ? shiftRules[shift] : null;
+            const dateClean = activeDateStr.replace(/-/g, '');
+            let desc = "";
+            if (rule && rule.showReminder) {
+                const rTime = new Date(new Date(`${activeDateStr}T${rule.start}`).getTime() - (10 * 60 * 60 * 1000));
+                desc = `&details=${encodeURIComponent('建議入睡時間：' + String(rTime.getHours()).padStart(2, '0') + ':' + String(rTime.getMinutes()).padStart(2, '0'))}`;
+            }
+            const title = rule ? `[桃捷] ${rule.name}` : "[休假] 個人行程";
+            const startTime = rule ? rule.start.replace(':','') + '00' : "090000";
+            const endTime = rule ? rule.end.replace(':','') + '00' : "100000";
+            const gUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${dateClean}T${startTime}/${dateClean}T${endTime}${desc}`;
+            window.open(gUrl, '_blank');
+        }
+
+        function changeMonth(step) {
+            currentViewDate.setMonth(currentViewDate.getMonth() + step);
+            renderCalendar();
+            document.getElementById('detail-pane').classList.add('hidden');
+            activeDateStr = "";
+        }
+
+        // 初始化啟動
+        selectShift('early');
+        renderCalendar();
+        fetchWeather();
+    </script>
+</body>
+</html>
